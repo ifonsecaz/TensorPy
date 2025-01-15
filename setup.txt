@@ -1,0 +1,159 @@
+Usar GPU
+Crear ambiente nuevo conda
+https://www.tensorflow.org/install/pip?hl=es-419#windows-native_1
+opcion windows native
+conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1.0
+pip install "tensorflow<2.11"
+
+actualizar drivers GPU
+instalar cuda, cudnn
+pip install cuda-python
+
+from tensorflow.python.client import device_lib
+def get_available_devices():
+	local_device_protos = device_lib.list_local_devices()
+	return [x.name for x in local_device_protos]
+
+print(get_available_devices())
+# It should be ['/device:CPU:0', '/device:GPU:0']
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
+
+pip uninstall tensorflow_datasets
+pip install keras==2.10.0
+pip install keras_nlp==0.6.4
+pip install tensorflow_datasets==4.9.2 al final, por compatibilidad con protobuf que requiere 3.20.3
+
+En C:\Users\ifons\AppData\Roaming\Python\Python39\site-packages\tensorflow\python\data\ops
+dataset_ops
+
+Cambiar funcion zip
+
+  """
+  @staticmethod
+  def zip(datasets, name=None):
+    Creates a `Dataset` by zipping together the given datasets.
+
+    This method has similar semantics to the built-in `zip()` function
+    in Python, with the main difference being that the `datasets`
+    argument can be a (nested) structure of `Dataset` objects. The supported
+    nesting mechanisms are documented
+    [here] (https://www.tensorflow.org/guide/data#dataset_structure).
+
+    >>> # The nested structure of the `datasets` argument determines the
+    >>> # structure of elements in the resulting dataset.
+    >>> a = tf.data.Dataset.range(1, 4)  # ==> [ 1, 2, 3 ]
+    >>> b = tf.data.Dataset.range(4, 7)  # ==> [ 4, 5, 6 ]
+    >>> ds = tf.data.Dataset.zip((a, b))
+    >>> list(ds.as_numpy_iterator())
+    [(1, 4), (2, 5), (3, 6)]
+    >>> ds = tf.data.Dataset.zip((b, a))
+    >>> list(ds.as_numpy_iterator())
+    [(4, 1), (5, 2), (6, 3)]
+    >>>
+    >>> # The `datasets` argument may contain an arbitrary number of datasets.
+    >>> c = tf.data.Dataset.range(7, 13).batch(2)  # ==> [ [7, 8],
+    ...                                            #       [9, 10],
+    ...                                            #       [11, 12] ]
+    >>> ds = tf.data.Dataset.zip((a, b, c))
+    >>> for element in ds.as_numpy_iterator():
+    ...   print(element)
+    (1, 4, array([7, 8]))
+    (2, 5, array([ 9, 10]))
+    (3, 6, array([11, 12]))
+    >>>
+    >>> # The number of elements in the resulting dataset is the same as
+    >>> # the size of the smallest dataset in `datasets`.
+    >>> d = tf.data.Dataset.range(13, 15)  # ==> [ 13, 14 ]
+    >>> ds = tf.data.Dataset.zip((a, d))
+    >>> list(ds.as_numpy_iterator())
+    [(1, 13), (2, 14)]
+
+    Args:
+      datasets: A (nested) structure of datasets.
+      name: (Optional.) A name for the tf.data operation.
+
+    Returns:
+      Dataset: A `Dataset`.
+    
+    return ZipDataset(datasets, name=name)
+  """
+  def zip(*args, datasets=None, name=None) -> "DatasetV2":
+    """Creates a `Dataset` by zipping together the given datasets.
+
+    This method has similar semantics to the built-in `zip()` function
+    in Python, with the main difference being that the `datasets`
+    argument can be a (nested) structure of `Dataset` objects. The supported
+    nesting mechanisms are documented
+    [here] (https://www.tensorflow.org/guide/data#dataset_structure).
+
+    >>> # The datasets or nested structure of datasets `*args` argument
+    >>> # determines the structure of elements in the resulting dataset.
+    >>> a = tf.data.Dataset.range(1, 4)  # ==> [ 1, 2, 3 ]
+    >>> b = tf.data.Dataset.range(4, 7)  # ==> [ 4, 5, 6 ]
+    >>> ds = tf.data.Dataset.zip(a, b)
+    >>> list(ds.as_numpy_iterator())
+    [(1, 4), (2, 5), (3, 6)]
+    >>> ds = tf.data.Dataset.zip(b, a)
+    >>> list(ds.as_numpy_iterator())
+    [(4, 1), (5, 2), (6, 3)]
+    >>>
+    >>> # The `datasets` argument may contain an arbitrary number of datasets.
+    >>> c = tf.data.Dataset.range(7, 13).batch(2)  # ==> [ [7, 8],
+    ...                                            #       [9, 10],
+    ...                                            #       [11, 12] ]
+    >>> ds = tf.data.Dataset.zip(a, b, c)
+    >>> for element in ds.as_numpy_iterator():
+    ...   print(element)
+    (1, 4, array([7, 8]))
+    (2, 5, array([ 9, 10]))
+    (3, 6, array([11, 12]))
+    >>>
+    >>> # The number of elements in the resulting dataset is the same as
+    >>> # the size of the smallest dataset in `datasets`.
+    >>> d = tf.data.Dataset.range(13, 15)  # ==> [ 13, 14 ]
+    >>> ds = tf.data.Dataset.zip(a, d)
+    >>> list(ds.as_numpy_iterator())
+    [(1, 13), (2, 14)]
+
+    Args:
+      *args: Datasets or nested structures of datasets to zip together. This
+        can't be set if `datasets` is set.
+      datasets: A (nested) structure of datasets. This can't be set if `*args`
+        is set. Note that this exists only for backwards compatibility and it is
+        preferred to use *args.
+      name: (Optional.) A name for the tf.data operation.
+
+    Returns:
+      A new `Dataset` with the transformation applied as described above.
+    """
+    # Loaded lazily due to a circular dependency (dataset_ops -> zip_op ->
+    # dataset_ops).
+    # pylint: disable=g-import-not-at-top,protected-access
+    #from tensorflow.python.data.ops import zip_op
+
+    if not args and datasets is None:
+      raise TypeError("Must pass at least one dataset to `zip`.")
+    if args and datasets is not None:
+      raise TypeError("Both `*args` and `datasets` cannot be set.")
+    if len(args) == 1:
+      datasets = args[0]
+    elif len(args) > 1:
+      datasets = args
+    return ZipDataset(datasets, name=name)
+    # pylint: enable=g-import-not-at-top,protected-access
+
+
+
+
+En D:\ifons\Documents\Python\envs\Tensorflow\Lib\site-packages\keras_nlp\src\tokenizers
+word_piece_tokenizer_trainer
+cambiar
+        with open(vocabulary_output_file, "w") as vocab_file:
+a
+        with open(vocabulary_output_file, "w", encoding="utf-8") as vocab_file:
+
+
+Para trabajar con lenguaje conviene cambiar encoder de windows a utf-8
+
+ir a configuracion -> idioma -> configuracion de idioma administrativo -> cambiar configuracion regional -> seleccionar beta utf-8
